@@ -9,15 +9,13 @@
         .screen { display: none; }
         .active { display: block; }
         h1 { color: #58a6ff; font-size: 1.5rem; margin-bottom: 2rem; text-shadow: 0 0 10px #3081f7; }
-        #question { font-size: 3.2rem; margin: 1rem 0; color: #fff; font-weight: bold; min-height: 140px; display: flex; align-items: center; justify-content: center; }
+        #question { font-size: 3.2rem; margin: 1.5rem 0; color: #fff; font-weight: bold; min-height: 140px; display: flex; align-items: center; justify-content: center; }
         
-        /* ボタンデザイン */
         .btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 10px; }
         .num-btn, .level-btn { background: linear-gradient(180deg, #1e3a8a, #0d1e3a); color: #fbbf24; padding: 15px; width: 120px; border-radius: 10px; font-size: 1.2rem; border: 2px solid #fbbf24; cursor:pointer; transition: all 0.2s; font-weight: bold; }
         .num-btn { width: 85px; }
         .level-btn:hover, .num-btn:hover { background: #fbbf24; color: #1e3a8a; transform: scale(1.05); }
 
-        /* Easy/Normal/Hardの色分け */
         .easy { border-color: #4caf50; color: #4caf50; }
         .normal { border-color: #ffeb3b; color: #ffeb3b; }
         .hard { border-color: #f44336; color: #f44336; }
@@ -76,9 +74,10 @@
     let audioCtx = null;
     const bgm = document.getElementById('game-bgm');
 
+    // データ読み込み
     async function fetchWords() {
         try {
-            const response = await fetch('words.json');
+            const response = await fetch('300words.json');
             masterWordList = await response.json();
             document.getElementById('load-screen').classList.remove('active');
             document.getElementById('level-screen').classList.add('active');
@@ -87,15 +86,24 @@
         }
     }
 
-    // ドーパミンを刺激する「決定音」
+    // オーディオの初期化と一時停止解除
+    function resumeAudio() {
+        if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+        }
+    }
+
+    // ドーパミンを刺激する「決定音」生成
     function playSelectSound() {
-        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        resumeAudio();
         const now = audioCtx.currentTime;
         const osc = audioCtx.createOscillator();
         const gain = audioCtx.createGain();
         
         osc.type = 'sine';
-        // 低い音から高い音へ一気にスウィープ（期待感を高める）
         osc.frequency.setValueAtTime(200, now);
         osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
         
@@ -108,26 +116,31 @@
         osc.stop(now + 0.2);
     }
 
+    // 難易度選択
     function selectLevel(level) {
+        // ここでブラウザのオーディオロックを解除
+        resumeAudio();
         playSelectSound();
-        // 指定されたレベルの単語だけを抽出
+
         filteredList = masterWordList.filter(w => w.level === level);
-        
-        // もしデータにlevel属性がない場合のためのフォールバック（全表示）
         if (filteredList.length === 0) filteredList = masterWordList;
 
         document.getElementById('level-screen').classList.remove('active');
         document.getElementById('start-screen').classList.add('active');
     }
 
+    // ゲーム開始（BGMスタート）
     function startGame(num) {
+        resumeAudio();
         playSelectSound();
-        bgm.volume = 0.3;
-        bgm.play().catch(e => console.log("BGM Error:", e));
 
-        // フィルタリングされたリストからランダム抽出
+        bgm.volume = 0.3;
+        bgm.currentTime = 0;
+        bgm.play().catch(e => console.log("BGM Play Error:", e));
+
         gameList = [...filteredList].sort(() => Math.random() - 0.5).slice(0, num);
-        currentIdx = 0; score = 0;
+        currentIdx = 0; 
+        score = 0;
 
         document.getElementById("start-screen").classList.remove("active");
         document.getElementById("quiz-screen").classList.add("active");
@@ -141,7 +154,13 @@
         const choicesDiv = document.getElementById("choices");
         choicesDiv.innerHTML = "";
 
-        let wrongs = masterWordList.filter(w => w.e !== quiz.e).sort(() => Math.random() - 0.5).slice(0, 3).map(w => w.e);
+        // 不正解のダミー選択肢（masterWordList全体から抽出）
+        let wrongs = masterWordList
+            .filter(w => w.e !== quiz.e)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3)
+            .map(w => w.e);
+        
         let all = [...wrongs, quiz.e].sort(() => Math.random() - 0.5);
 
         all.forEach(c => {
@@ -159,11 +178,15 @@
             playCorrectFanfare();
         }
         currentIdx++;
-        if (currentIdx < gameList.length) setTimeout(loadQuiz, 600);
-        else showResult();
+        if (currentIdx < gameList.length) {
+            setTimeout(loadQuiz, 600);
+        } else {
+            showResult();
+        }
     }
 
     function playCorrectFanfare() {
+        resumeAudio();
         const now = audioCtx.currentTime;
         [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
             const o = audioCtx.createOscillator();
