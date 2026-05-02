@@ -2,8 +2,10 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>Pop English 300! API Edition</title>
-body { 
+    <title>Vocab Millionaire - 300 Words Quest</title>
+    <style>
+        /* 基本レイアウト */
+        body { 
             font-family: 'Hiragino Kaku Gothic ProN', sans-serif; 
             background-color: #050a14; 
             display: flex; 
@@ -17,12 +19,12 @@ body {
 
         #game-container { 
             text-align: center; 
-            width: 500px; /* 画像に合わせて少し広げました */
+            width: 500px; 
             position: relative; 
             z-index: 10;
         }
 
-        /* 背景画像を適用するスクリーン */
+        /* スクリーン共通設定（神秘的な背景を適用） */
         .screen { 
             display: none; 
             padding: 3rem 2rem;
@@ -30,20 +32,20 @@ body {
             background-size: cover;
             background-position: center;
             background-repeat: no-repeat;
-            box-shadow: 0 0 30px rgba(0,0,0,0.8);
-            border: 1px solid rgba(88, 166, 255, 0.3);
+            box-shadow: 0 0 40px rgba(0,0,0,0.9);
+            border: 1px solid rgba(88, 166, 255, 0.2);
         }
 
         .active { display: block; }
 
-        /* タイトル・レベル・スタート・結果画面にあの神秘的な背景を適用 */
+        /* タイトル・選択・結果画面に背景を適用 */
         #load-screen, #level-screen, #start-screen, #result-screen {
-            background-image: linear-gradient(rgba(0,0,0,0.5), rgba(0,0,0,0.5)), url('title-bg.png');
+            background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('title-bg.png');
         }
 
-        /* クイズ中だけは集中するために背景を暗くする */
+        /* クイズ画面は集中力を高めるためダークに */
         #quiz-screen {
-            background-color: rgba(22, 27, 34, 0.95);
+            background-color: rgba(13, 17, 23, 0.95);
             border: 2px solid #3081f7;
         }
 
@@ -51,12 +53,12 @@ body {
             color: #fbbf24; 
             font-size: 1.8rem; 
             margin-bottom: 2rem; 
-            text-shadow: 0 0 15px rgba(251, 191, 36, 0.6);
+            text-shadow: 0 0 15px rgba(251, 191, 36, 0.7);
             letter-spacing: 2px;
         }
 
         #question { 
-            font-size: 3.2rem; 
+            font-size: 3rem; 
             margin: 1rem 0; 
             color: #fff; 
             font-weight: bold; 
@@ -64,13 +66,14 @@ body {
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            text-shadow: 0 0 10px rgba(255,255,255,0.5);
+            text-shadow: 0 0 10px rgba(255,255,255,0.4);
         }
         
         .btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
         
+        /* ミリオネア・スタイルのボタン */
         .num-btn, .level-btn { 
-            background: rgba(13, 30, 58, 0.8); 
+            background: rgba(13, 30, 58, 0.85); 
             color: #fbbf24; 
             padding: 15px; 
             width: 130px; 
@@ -86,17 +89,22 @@ body {
         .level-btn:hover, .num-btn:hover { 
             background: #fbbf24; 
             color: #0d1e3a; 
-            box-shadow: 0 0 20px #fbbf24;
+            box-shadow: 0 0 25px #fbbf24;
+            transform: scale(1.05);
         }
+
+        .easy { border-color: #4caf50; color: #4caf50; }
+        .normal { border-color: #ffeb3b; color: #ffeb3b; }
+        .hard { border-color: #f44336; color: #f44336; }
 
         .choice-btn { 
             display: block; 
             width: 100%; 
             margin: 15px 0; 
-            padding: 20px; 
-            font-size: 1.5rem; 
-            border-radius: 50px; /* ミリオネアのボタンぽく */
-            background: rgba(255,255,255,0.05); 
+            padding: 18px; 
+            font-size: 1.4rem; 
+            border-radius: 50px; 
+            background: rgba(255,255,255,0.03); 
             color: #fff; 
             border: 1px solid #58a6ff; 
             cursor: pointer; 
@@ -110,19 +118,35 @@ body {
             color: #fbbf24; 
             transform: scale(1.02);
         }
+
+        #result-score { font-size: 5rem; color: #fbbf24; font-weight: bold; text-shadow: 0 0 20px #fbbf24; }
+
+        /* 火花エフェクト用 */
+        .sparkle { position: absolute; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; animation: sparkle-anim 0.6s forwards; z-index: 100; }
+        @keyframes sparkle-anim { 0% { transform: scale(0); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1.5) translate(var(--dx), var(--dy)); opacity: 0; } }
+    </style>
 </head>
 <body>
 
-<audio id="game-bgm" loop><source src="bgm.mp3" type="audio/mpeg"></audio>
+<audio id="game-bgm" loop preload="auto">
+    <source src="bgm.mp3" type="audio/mpeg">
+</audio>
 
 <div id="game-container">
-    <div id="load-screen" class="active">
-        <h1>Loading Data...</h1>
+    <div id="load-screen" class="screen active"><h1>Loading Data...</h1></div>
+
+    <div id="level-screen" class="screen">
+        <h1>Select Difficulty</h1>
+        <div class="btn-group">
+            <button class="level-btn easy" onclick="selectLevel('easy')">Easy</button>
+            <button class="level-btn normal" onclick="selectLevel('normal')">Normal</button>
+            <button class="level-btn hard" onclick="selectLevel('hard')">Hard</button>
+        </div>
     </div>
 
     <div id="start-screen" class="screen">
-        <h1>Final Answer?</h1>
-        <div id="num-options">
+        <h1>Select Questions</h1>
+        <div id="num-options" class="btn-group">
             <button class="num-btn" onclick="startGame(10)">10</button>
             <button class="num-btn" onclick="startGame(20)">20</button>
             <button class="num-btn" onclick="startGame(30)">30</button>
@@ -132,7 +156,7 @@ body {
     </div>
 
     <div id="quiz-screen" class="screen">
-        <div id="progress" style="color:#fbbf24; font-weight:bold;"></div>
+        <div id="progress" style="color:#fbbf24; font-weight:bold; font-size: 1.2rem;"></div>
         <div id="question"></div>
         <div id="choices"></div>
     </div>
@@ -140,64 +164,84 @@ body {
     <div id="result-screen" class="screen">
         <h1>Congratulations!</h1>
         <div id="result-score">0</div>
-        <button class="num-btn" style="width:220px" onclick="location.reload()">RETRY</button>
+        <button class="level-btn" style="width:220px" onclick="location.reload()">RETRY</button>
     </div>
 </div>
 
 <script>
     let masterWordList = [];
+    let filteredList = [];
     let gameList = [];
     let currentIdx = 0;
     let score = 0;
     let audioCtx = null;
     const bgm = document.getElementById('game-bgm');
 
-    // --- 1. 外部JSONから単語を読み込む (API呼び出し) ---
+    // データ読み込み
     async function fetchWords() {
         try {
-            // ローカルファイルの場合、ブラウザの制限でサーバー(VSCode Live Server等)が必要になる場合があります
             const response = await fetch('300words.json');
+            if (!response.ok) throw new Error('Network Error');
             masterWordList = await response.json();
-            
-            // ロード完了後、スタート画面へ
-            document.getElementById('load-screen').classList.remove('active');
-            document.getElementById('start-screen').classList.add('active');
+            showScreen('level-screen');
         } catch (error) {
-            console.error('Error loading words:', error);
-            document.getElementById('load-screen').innerHTML = "<h1>Error: Please use a Local Server</h1>";
+            console.error('Error:', error);
+            document.getElementById('load-screen').innerHTML = `<h1 style="color:red">Loading Error</h1>`;
         }
     }
 
-    // ゲーム開始
-    function startGame(num) {
+    function showScreen(id) {
+        document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+    }
+
+    function unlockAudio() {
         if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        bgm.volume = 0.3;
-        bgm.play();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+    }
 
-        // 読み込んだ全データからランダム抽出
-        gameList = [...masterWordList].sort(() => Math.random() - 0.5).slice(0, num);
+    // ドーパミン刺激音（決定音）
+    function playSelectSound() {
+        unlockAudio();
+        const now = audioCtx.currentTime;
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(200, now);
+        osc.frequency.exponentialRampToValueAtTime(1000, now + 0.15);
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+        osc.connect(gain); gain.connect(audioCtx.destination);
+        osc.start(); osc.stop(now + 0.2);
+    }
+
+    function selectLevel(level) {
+        playSelectSound();
+        filteredList = masterWordList.filter(w => w.level === level);
+        if (filteredList.length === 0) filteredList = masterWordList;
+        showScreen('start-screen');
+    }
+
+    function startGame(num) {
+        playSelectSound();
+        bgm.volume = 0.4;
+        bgm.currentTime = 0;
+        bgm.play().catch(e => console.log("BGM Play Error:", e));
+
+        gameList = [...filteredList].sort(() => Math.random() - 0.5).slice(0, num);
         currentIdx = 0; score = 0;
-
-        document.getElementById("start-screen").classList.remove("active");
-        document.getElementById("quiz-screen").classList.add("active");
+        showScreen('quiz-screen');
         loadQuiz();
     }
 
     function loadQuiz() {
         const quiz = gameList[currentIdx];
-        document.getElementById("progress").innerText = `Level ${currentIdx + 1} / ${gameList.length}`;
+        document.getElementById("progress").innerText = `LV: ${currentIdx + 1} / ${gameList.length}`;
         document.getElementById("question").innerText = quiz.j;
-        
         const choicesDiv = document.getElementById("choices");
         choicesDiv.innerHTML = "";
 
-        // 不正解のダミーを全リストから生成
-        let wrongs = masterWordList
-            .filter(w => w.e !== quiz.e)
-            .sort(() => Math.random() - 0.5)
-            .slice(0, 3)
-            .map(w => w.e);
-        
+        let wrongs = masterWordList.filter(w => w.e !== quiz.e).sort(() => Math.random() - 0.5).slice(0, 3).map(w => w.e);
         let all = [...wrongs, quiz.e].sort(() => Math.random() - 0.5);
 
         all.forEach(c => {
@@ -226,11 +270,11 @@ body {
             const o = audioCtx.createOscillator();
             const g = audioCtx.createGain();
             o.type = 'triangle';
-            o.frequency.setValueAtTime(f, now + (i * 0.04));
-            g.gain.setValueAtTime(0.1, now + (i * 0.04));
-            g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            o.frequency.setValueAtTime(f, now + (i * 0.05));
+            g.gain.setValueAtTime(0.1, now + (i * 0.05));
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
             o.connect(g); g.connect(audioCtx.destination);
-            o.start(now + (i * 0.04)); o.stop(now + 0.5);
+            o.start(now + (i * 0.05)); o.stop(now + 0.4);
         });
     }
 
@@ -249,12 +293,10 @@ body {
     }
 
     function showResult() {
-        document.getElementById("quiz-screen").classList.remove("active");
-        document.getElementById("result-screen").classList.add("active");
+        showScreen('result-screen');
         document.getElementById("result-score").innerText = `${score} / ${gameList.length}`;
     }
 
-    // 起動時に単語を読み込み
     fetchWords();
 </script>
 </body>
