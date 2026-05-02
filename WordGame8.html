@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>Pop English 300! API Edition</title>
+    <style>
+        /* スタイルはミリオネア版を継承・洗練 */
+        body { font-family: 'Hiragino Kaku Gothic ProN', sans-serif; background-color: #0d1117; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; overflow: hidden; color: white; }
+        #game-container { background: #161b22; padding: 2rem; border-radius: 30px; box-shadow: 0 0 50px rgba(0,210,255,0.3); text-align: center; width: 450px; border: 4px solid #3081f7; position: relative; }
+        .screen { display: none; }
+        .active { display: block; }
+        h1 { color: #58a6ff; font-size: 1.5rem; margin-bottom: 2rem; text-shadow: 0 0 10px #3081f7; }
+        #question { font-size: 3.2rem; margin: 1.5rem 0; color: #fff; font-weight: bold; min-height: 140px; display: flex; align-items: center; justify-content: center; }
+        .num-btn { background: linear-gradient(180deg, #1e3a8a, #0d1e3a); color: #fbbf24; padding: 15px; margin: 8px; width: 85px; border-radius: 10px; font-size: 1.3rem; border: 2px solid #fbbf24; cursor:pointer; }
+        .choice-btn { display: block; width: 100%; margin: 12px 0; padding: 18px; font-size: 1.4rem; border-radius: 10px; background: transparent; color: #fff; border: 2px solid #58a6ff; cursor:pointer; font-weight:bold; transition: 0.2s; }
+        .choice-btn:hover { background: rgba(88, 166, 255, 0.2); border-color: #fbbf24; color: #fbbf24; }
+        #result-score { font-size: 5rem; color: #fbbf24; font-weight: bold; }
+        .sparkle { position: absolute; width: 8px; height: 8px; border-radius: 50%; pointer-events: none; animation: sparkle-anim 0.6s forwards; z-index: 100; }
+        @keyframes sparkle-anim { 0% { transform: scale(0); opacity: 0; } 50% { opacity: 1; } 100% { transform: scale(1.5) translate(var(--dx), var(--dy)); opacity: 0; } }
+    </style>
+</head>
+<body>
+
+<audio id="game-bgm" loop><source src="bgm.mp3" type="audio/mpeg"></audio>
+
+<div id="game-container">
+    <div id="load-screen" class="active">
+        <h1>Loading Data...</h1>
+    </div>
+
+    <div id="start-screen" class="screen">
+        <h1>Final Answer?</h1>
+        <div id="num-options">
+            <button class="num-btn" onclick="startGame(10)">10</button>
+            <button class="num-btn" onclick="startGame(20)">20</button>
+            <button class="num-btn" onclick="startGame(30)">30</button>
+            <button class="num-btn" onclick="startGame(40)">40</button>
+            <button class="num-btn" onclick="startGame(50)">50</button>
+        </div>
+    </div>
+
+    <div id="quiz-screen" class="screen">
+        <div id="progress" style="color:#fbbf24; font-weight:bold;"></div>
+        <div id="question"></div>
+        <div id="choices"></div>
+    </div>
+
+    <div id="result-screen" class="screen">
+        <h1>Congratulations!</h1>
+        <div id="result-score">0</div>
+        <button class="num-btn" style="width:220px" onclick="location.reload()">RETRY</button>
+    </div>
+</div>
+
+<script>
+    let masterWordList = [];
+    let gameList = [];
+    let currentIdx = 0;
+    let score = 0;
+    let audioCtx = null;
+    const bgm = document.getElementById('game-bgm');
+
+    // --- 1. 外部JSONから単語を読み込む (API呼び出し) ---
+    async function fetchWords() {
+        try {
+            // ローカルファイルの場合、ブラウザの制限でサーバー(VSCode Live Server等)が必要になる場合があります
+            const response = await fetch('300words.json');
+            masterWordList = await response.json();
+            
+            // ロード完了後、スタート画面へ
+            document.getElementById('load-screen').classList.remove('active');
+            document.getElementById('start-screen').classList.add('active');
+        } catch (error) {
+            console.error('Error loading words:', error);
+            document.getElementById('load-screen').innerHTML = "<h1>Error: Please use a Local Server</h1>";
+        }
+    }
+
+    // ゲーム開始
+    function startGame(num) {
+        if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        bgm.volume = 0.3;
+        bgm.play();
+
+        // 読み込んだ全データからランダム抽出
+        gameList = [...masterWordList].sort(() => Math.random() - 0.5).slice(0, num);
+        currentIdx = 0; score = 0;
+
+        document.getElementById("start-screen").classList.remove("active");
+        document.getElementById("quiz-screen").classList.add("active");
+        loadQuiz();
+    }
+
+    function loadQuiz() {
+        const quiz = gameList[currentIdx];
+        document.getElementById("progress").innerText = `Level ${currentIdx + 1} / ${gameList.length}`;
+        document.getElementById("question").innerText = quiz.j;
+        
+        const choicesDiv = document.getElementById("choices");
+        choicesDiv.innerHTML = "";
+
+        // 不正解のダミーを全リストから生成
+        let wrongs = masterWordList
+            .filter(w => w.e !== quiz.e)
+            .sort(() => Math.random() - 0.5)
+            .slice(0, 3)
+            .map(w => w.e);
+        
+        let all = [...wrongs, quiz.e].sort(() => Math.random() - 0.5);
+
+        all.forEach(c => {
+            const btn = document.createElement("button");
+            btn.className = "choice-btn";
+            btn.innerText = c;
+            btn.onclick = () => checkAnswer(c, quiz.e);
+            choicesDiv.appendChild(btn);
+        });
+    }
+
+    function checkAnswer(s, c) {
+        if (s === c) {
+            score++;
+            playCorrectFanfare();
+            createSpark();
+        }
+        currentIdx++;
+        if (currentIdx < gameList.length) setTimeout(loadQuiz, 600);
+        else showResult();
+    }
+
+    function playCorrectFanfare() {
+        const now = audioCtx.currentTime;
+        [523.25, 659.25, 783.99, 1046.50].forEach((f, i) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.type = 'triangle';
+            o.frequency.setValueAtTime(f, now + (i * 0.04));
+            g.gain.setValueAtTime(0.1, now + (i * 0.04));
+            g.gain.exponentialRampToValueAtTime(0.001, now + 0.5);
+            o.connect(g); g.connect(audioCtx.destination);
+            o.start(now + (i * 0.04)); o.stop(now + 0.5);
+        });
+    }
+
+    function createSpark() {
+        const container = document.getElementById("game-container");
+        for (let i = 0; i < 20; i++) {
+            const s = document.createElement("div");
+            s.className = "sparkle";
+            s.style.left = "50%"; s.style.top = "50%";
+            s.style.background = "#fbbf24";
+            s.style.setProperty('--dx', `${(Math.random()-0.5)*400}px`);
+            s.style.setProperty('--dy', `${(Math.random()-0.5)*400}px`);
+            container.appendChild(s);
+            setTimeout(() => s.remove(), 600);
+        }
+    }
+
+    function showResult() {
+        document.getElementById("quiz-screen").classList.remove("active");
+        document.getElementById("result-screen").classList.add("active");
+        document.getElementById("result-score").innerText = `${score} / ${gameList.length}`;
+    }
+
+    // 起動時に単語を読み込み
+    fetchWords();
+</script>
+</body>
+</html>
