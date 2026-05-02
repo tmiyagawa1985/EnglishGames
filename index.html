@@ -180,7 +180,7 @@
     // データ読み込み
     async function fetchWords() {
         try {
-            const response = await fetch('300words.json');
+            const response = await fetch('words.json');
             if (!response.ok) throw new Error('Network Error');
             masterWordList = await response.json();
             showScreen('level-screen');
