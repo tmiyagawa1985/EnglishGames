@@ -19,104 +19,111 @@
 
         #game-container { 
             text-align: center; 
-            width: 900px; 
+            /* 画面全体を使えるように幅を100%に */
+            width: 100vw; 
+            height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             position: relative; 
             z-index: 10;
         }
 
-        /* スクリーン共通設定（神秘的な背景を適用） */
+        /* スクリーン共通設定（全画面・巨大背景） */
         .screen { 
             display: none; 
-            padding: 5rem 3rem;
-            border-radius: 50px;
-            background-size: cover;
+            width: 100%;
+            height: 100%;
+            display: none; /* 初期状態 */
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            padding: 2rem;
+            
+            /* ★ここが重要：背景画像を画面いっぱいに広げる（今の3倍以上の迫力になります） */
+            background-size: cover; 
             background-position: center;
             background-repeat: no-repeat;
-            box-shadow: 0 0 40px rgba(0,0,0,0.9);
-            border: 1px solid rgba(88, 166, 255, 0.2);
+            
+            /* 文字を見やすくするため、画像の上に暗いフィルターを重ねる */
+            background-image: linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('title-bg.png');
         }
 
-        .active { display: block; }
-
-        /* タイトル・選択・結果画面に背景を適用 */
-        #load-screen, #level-screen, #start-screen, #result-screen {
-            background-image: linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('title-bg.png');
+        /* JavaScriptでactiveが付いた時だけFlex表示にする */
+        .screen.active { 
+            display: flex; 
         }
 
-        /* クイズ画面は集中力を高めるためダークに */
+        /* クイズ画面はBGMのリズムに集中するため、少し透過度を下げた黒背景を重ねる */
         #quiz-screen {
-            background-color: rgba(13, 17, 23, 0.95);
-            border: 2px solid #3081f7;
+            background-image: linear-gradient(rgba(0,0,0,0.85), rgba(0,0,0,0.85)), url('title-bg.png');
         }
 
         h1 { 
             color: #fbbf24; 
-            font-size: 2.5rem; 
-            margin-bottom: 3rem; 
-            text-shadow: 0 0 15px rgba(251, 191, 36, 0.7);
-            letter-spacing: 2px;
+            font-size: 3.5rem; /* タイトルを巨大化 */
+            margin-bottom: 2rem; 
+            text-shadow: 0 0 30px rgba(251, 191, 36, 0.9);
+            letter-spacing: 8px;
+            font-weight: 900;
         }
 
         #question { 
-            font-size: 5rem; 
-            margin: 2rem 0; 
+            font-size: 5rem; /* 問題文を巨大化 */
+            margin: 1.5rem 0; 
             color: #fff; 
             font-weight: bold; 
-            min-height: 140px; 
+            min-height: 200px; 
             display: flex; 
             align-items: center; 
             justify-content: center; 
-            text-shadow: 0 0 10px rgba(255,255,255,0.4);
+            text-shadow: 0 0 20px rgba(255,255,255,0.7);
         }
         
-        .btn-group { display: flex; flex-wrap: wrap; justify-content: center; gap: 12px; }
+        .btn-group { 
+            display: flex; 
+            flex-wrap: wrap; 
+            justify-content: center; 
+            gap: 20px; 
+            max-width: 900px;
+        }
         
-        /* ミリオネア・スタイルのボタン */
+        /* ボタンも巨大化 */
         .num-btn, .level-btn { 
-            background: rgba(13, 30, 58, 0.85); 
+            background: rgba(13, 30, 58, 0.9); 
             color: #fbbf24; 
-            padding: 15px; 
-            width: 160px; 
-            border-radius: 5px; 
-            font-size: 2rem; 
-            border: 1px solid #fbbf24; 
+            padding: 25px 40px; 
+            min-width: 200px; 
+            border-radius: 10px; 
+            font-size: 1.8rem; 
+            border: 3px solid #fbbf24; 
             cursor: pointer; 
             transition: all 0.3s; 
             font-weight: bold; 
-            backdrop-filter: blur(5px);
+            box-shadow: 0 10px 20px rgba(0,0,0,0.5);
         }
 
         .level-btn:hover, .num-btn:hover { 
             background: #fbbf24; 
             color: #0d1e3a; 
-            box-shadow: 0 0 25px #fbbf24;
-            transform: scale(1.05);
+            box-shadow: 0 0 40px #fbbf24;
+            transform: scale(1.1);
         }
 
-        .easy { border-color: #4caf50; color: #4caf50; }
-        .normal { border-color: #ffeb3b; color: #ffeb3b; }
-        .hard { border-color: #f44336; color: #f44336; }
-
         .choice-btn { 
-            display: block; 
             width: 100%; 
+            max-width: 700px;
             margin: 15px 0; 
-            padding: 18px; 
-            font-size: 1.4rem; 
-            border-radius: 50px; 
-            background: rgba(255,255,255,0.03); 
+            padding: 25px; 
+            font-size: 2rem; 
+            border-radius: 60px; 
+            background: rgba(255,255,255,0.05); 
             color: #fff; 
-            border: 1px solid #58a6ff; 
+            border: 2px solid #58a6ff; 
             cursor: pointer; 
             font-weight: bold; 
             transition: 0.3s; 
-        }
-
-        .choice-btn:hover { 
-            background: linear-gradient(90deg, transparent, rgba(251, 191, 36, 0.2), transparent);
-            border-color: #fbbf24; 
-            color: #fbbf24; 
-            transform: scale(1.02);
+            backdrop-filter: blur(5px);
         }
 
         #result-score { font-size: 5rem; color: #fbbf24; font-weight: bold; text-shadow: 0 0 20px #fbbf24; }
